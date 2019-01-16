@@ -1,3 +1,5 @@
+//Code run on an arduino or similar to handle bluetooth control of a string of neopixels
+
 #include <Adafruit_NeoPixel.h>
 #include <SoftwareSerial.h>
 
