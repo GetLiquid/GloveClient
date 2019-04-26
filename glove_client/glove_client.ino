@@ -1,8 +1,12 @@
-//Code run on an arduino or similar to handle bluetooth control of a string of neopixels
+/* This is the client-side (glove-side) code to run on a set of neopixel-based gloves, powered by
+ *  an Adafruit Gemma or similar ATTiny85-based device in conjunction with an HC-06 bluetooth module.
+ *  The bluetooth module communicates with the ATTiny via a SoftwareSerial. Data is read in 
+ */
 
 #include <Adafruit_NeoPixel.h>
 #include <SoftwareSerial.h>
 
+//Some general configurations for the gloves
 #define NUMPIXELS 5       //set the number of pixels on each strip
 #define BUFFERSIZE 8      //set the size of the data buffer to read from the phone
 #define SERIALBAUD 38400  //set the baud rate for serial communication with the bluetooth adapter
@@ -16,20 +20,16 @@
 #define SET_SINGLE_RGB 0x0D  
 
 //define the pins used
-#define LED_PIN 7  //the data pin for the LED strip
-#define BT_RX 5    //the RX pin for the bluetooth module
-#define BT_TX 6    //the TX pin for the bluetooth module
+#define LED_PIN 1  //the data pin for the LED strip
+#define BT_RX 0    //Connect bluetooth TX to this pin (green)
+#define BT_TX 2    //Connect bluetooth RX to this pin (yellow)
 
-//stores the red, green, and blue of the pixels
+//Some important variables
 byte r = 0;
 byte g = 0;
 byte b = 0;
-
-
-byte buf[BUFFERSIZE]; //this array of bytes stores the data from the bluetooth module
-
-byte loopWait = 0;       //how long to wait at the end of the loop() function before it is called again in milliseconds
-
+byte buf[BUFFERSIZE]; //this array of bytes stores the data from the bluetooth module each time data is read
+byte loopWait = 0; //specifies a delay in milliseconds between calls of loop()
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 SoftwareSerial bt_data = SoftwareSerial(BT_RX,BT_TX);
@@ -37,24 +37,47 @@ SoftwareSerial bt_data = SoftwareSerial(BT_RX,BT_TX);
 byte current_mode = 0;
 
 void setup() {
-  //Serial.begin(SERIALBAUD);
-  bt_data.begin(SERIALBAUD);
+  bt_data.begin(SERIALBAUD); //begin the serial connection
   bt_data.setTimeout(10);
 
-  strip.begin();
-  //strip.setBrightness(64);
+  strip.begin(); //initialize the strip of neopixels
+
+  /* Test the r, g, b of the strip to verify functionality */
+  for(int i = 0;i<NUMPIXELS;++i)
+  {
+    strip.setPixelColor(i, 0, 255, 0);
+  }
+  strip.show();
+  delay(500);
+  for(int i = 0;i<NUMPIXELS;++i)
+  {
+    strip.setPixelColor(i, 0, 0, 255);
+  }
+  strip.show();
+  delay(500);
+  for(int i = 0;i<NUMPIXELS;++i)
+  {
+    strip.setPixelColor(i, 255, 0, 0);
+  }
+  strip.show();
+  delay(500);
+  /****************************************/
+  for(int i = 0;i<NUMPIXELS;++i)
+  {
+    strip.setPixelColor(i, 100, 100, 100);
+  }
   strip.show();
 }
 
 void loop() {
-  bt_data.readBytes(buf, BUFFERSIZE);
+  bt_data.readBytes(buf, BUFFERSIZE); //read BUFFERSIZE bytes from the serial and store them into the buffer
   
   
-  if(buf[0] == START_CODE && buf[BUFFERSIZE-1] == END_CODE)
+  if(buf[0] == START_CODE && buf[BUFFERSIZE-1] == END_CODE) //verify the first and last byte are our stop and end codes
   {
-    switch(buf[1])
+    switch(buf[1]) //the second byte (index 1) defines what command is coming from the master to the slave
     {
-      case SET_RGB:
+      case SET_RGB: //set teh raw rgb value
         r = buf[2];
         g = buf[3];
         b = buf[4];
@@ -91,7 +114,7 @@ void loop() {
   }
   
   strip.show();
-  delay(loopWait);
+  //delay(loopWait);
 }
 
 /*void rainbowWheel()
