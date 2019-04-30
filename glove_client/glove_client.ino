@@ -8,121 +8,87 @@
 
 //Some general configurations for the gloves
 #define NUMPIXELS 5       //set the number of pixels on each strip
-#define BUFFERSIZE 8      //set the size of the data buffer to read from the phone
+#define BUFFERSIZE 16     //set the size of the data buffer to read from the phone
 #define SERIALBAUD 38400  //set the baud rate for serial communication with the bluetooth adapter
-
-//define some codes to look for in the data received
-#define START_CODE 0xFF      //each command starts with this code, if the buffer does not start with this ignore the command
-#define END_CODE 0x0F        //each command ends with this code, if the buffer does not end with this ignore the command
-#define SET_RGB 0x0A         //command to set the raw rgb value of all the pixels in the strip
-#define SET_LOOP_DELAY 0x0B  //command to set the delay between callings of the loop() function
-#define SET_CYCLE_JUMP 0x0C  //command to set the speed at which the colorWheel() function cycles through colors
-#define SET_SINGLE_RGB 0x0D  
 
 //define the pins used
 #define LED_PIN 1  //the data pin for the LED strip
 #define BT_RX 0    //Connect bluetooth TX to this pin (green)
 #define BT_TX 2    //Connect bluetooth RX to this pin (yellow)
 
+#define SET_RGB_ALL 0x0A
+
 //Some important variables
-byte r = 0;
-byte g = 0;
-byte b = 0;
 byte buf[BUFFERSIZE]; //this array of bytes stores the data from the bluetooth module each time data is read
-byte loopWait = 0; //specifies a delay in milliseconds between calls of loop()
+struct light
+{
+  uint8_t r, g, b;
+} fingers[NUMPIXELS];
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 SoftwareSerial bt_data = SoftwareSerial(BT_RX,BT_TX);
 
-byte current_mode = 0;
-
 void setup() {
   bt_data.begin(SERIALBAUD); //begin the serial connection
-  bt_data.setTimeout(10);
+  bt_data.setTimeout(5);
 
   strip.begin(); //initialize the strip of neopixels
+  for(int i=0;i<BUFFERSIZE;++i)
+  {
+    buf[i] = 0;
+  }
+  for(int i=0;i<NUMPIXELS;++i)
+  {
+    fingers[i].r = 0;
+    fingers[i].g = 0;
+    fingers[i].b = 0;
+  }
 
-  /* Test the r, g, b of the strip to verify functionality */
-  for(int i = 0;i<NUMPIXELS;++i)
-  {
-    strip.setPixelColor(i, 0, 255, 0);
-  }
-  strip.show();
-  delay(500);
-  for(int i = 0;i<NUMPIXELS;++i)
-  {
-    strip.setPixelColor(i, 0, 0, 255);
-  }
-  strip.show();
-  delay(500);
-  for(int i = 0;i<NUMPIXELS;++i)
-  {
-    strip.setPixelColor(i, 255, 0, 0);
-  }
-  strip.show();
-  delay(500);
-  /****************************************/
-  for(int i = 0;i<NUMPIXELS;++i)
+  for(uint8_t i = 0;i<NUMPIXELS;++i)
   {
     strip.setPixelColor(i, 100, 100, 100);
   }
   strip.show();
+  
 }
 
 void loop() {
-  bt_data.readBytes(buf, BUFFERSIZE); //read BUFFERSIZE bytes from the serial and store them into the buffer
-  
-  
-  if(buf[0] == START_CODE && buf[BUFFERSIZE-1] == END_CODE) //verify the first and last byte are our stop and end codes
+  if(bt_data.available())
+    bt_data.readBytes(buf, BUFFERSIZE); //read BUFFERSIZE bytes from the serial and store them into the buffer
+
+  switch(buf[BUFFERSIZE-1])
   {
-    switch(buf[1]) //the second byte (index 1) defines what command is coming from the master to the slave
-    {
-      case SET_RGB: //set teh raw rgb value
-        r = buf[2];
-        g = buf[3];
-        b = buf[4];
-        for(int i=0;i<NUMPIXELS;++i)
-        {
-          strip.setPixelColor(i, g, r, b);
-        }
-        break;
-        
-      case SET_LOOP_DELAY:
-        loopWait = buf[2];
-        break;
-        
-      case SET_CYCLE_JUMP:
-        current_mode = buf[3];
-        //cycleVelocity = buf[2];
-        break;
-
-      case SET_SINGLE_RGB:
-        //cycle = false;
-        /*for(int i=0;i<NUMPIXELS;++i)
-        {
-          if(i == buf[5])
-            strip.setPixelColor(buf[5], buf[3], buf[2], buf[4]);
-          else
-            strip.setPixelColor(i,0,0,0);
-        }*/
-
-        strip.setPixelColor(buf[5], buf[3], buf[2], buf[4]);
-      default:
-        break;
-    }
-    buf[0] = 0x0;
+    case SET_RGB_ALL:
+      for(int i=0;i<NUMPIXELS;++i)
+      {
+        fingers[i].r = buf[i*3];
+        fingers[i].g = buf[(i*3) + 1];
+        fingers[i].b = buf[(i*3) + 2];
+      }
+      break;
+    default:
+      /*fingers[0].r = 255;
+      fingers[0].g = 0;
+      fingers[0].b = 0;*/
+      break;
   }
-  
+  for(uint8_t i=0;i<NUMPIXELS;++i)
+  {
+    strip.setPixelColor(i, fingers[i].r, fingers[i].g, fingers[i].b);
+  }
   strip.show();
-  //delay(loopWait);
+  
+  for(int i=0;i<BUFFERSIZE;++i)
+  {
+    bt_data.write(buf[i]);
+  }
 }
 
 /*void rainbowWheel()
 {
     for(int i=0; i< NUMPIXELS; i++) {
-      strip.setPixelColor(i, Wheel(((i * 256 / NUMPIXELS) + cycleOffset) & 255));
+      strip.setPixelColor(i, Wheel(((i * 256 / NUMPIXELS)) & 255));
     }
-    cycleOffset += cycleVelocity;
 }
 
 void colorWheel()
@@ -154,3 +120,30 @@ uint32_t Wheel(byte WheelPos)
     return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
   }
 }*/
+
+light Wheel(byte pos)
+{
+  light out;
+  pos = 255 - pos;
+  if(pos < 85)
+  {
+    out.r = 255 - pos * 3;
+    out.g = 0;
+    out.b = pos * 3;
+    return out;
+  } else if(pos < 170)
+  {
+    pos -= 85;
+    out.r = 0;
+    out.g = pos * 3;
+    out.b = 255 - pos * 3;
+    return out;
+  } else
+  {
+    pos -= 170;
+    out.r = pos * 3;
+    out.g = 255 - pos * 3;
+    out.b = 0;
+  }
+  
+}
