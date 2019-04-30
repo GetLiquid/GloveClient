@@ -8,7 +8,7 @@
 
 //Some general configurations for the gloves
 #define NUMPIXELS 5       //set the number of pixels on each strip
-#define BUFFERSIZE 16     //set the size of the data buffer to read from the phone
+#define BUFFERSIZE 15     //set the size of the data buffer to read from the phone
 #define SERIALBAUD 38400  //set the baud rate for serial communication with the bluetooth adapter
 
 //define the pins used
@@ -46,17 +46,22 @@ void setup() {
 
   for(uint8_t i = 0;i<NUMPIXELS;++i)
   {
-    strip.setPixelColor(i, 100, 100, 100);
+    strip.setPixelColor(i, 200, 100, 100);
   }
   strip.show();
   
 }
 
 void loop() {
+  bt_data.write(0xFF);
+  bt_data.write(0xCC);
+  delay(1);
   if(bt_data.available())
+  {
     bt_data.readBytes(buf, BUFFERSIZE); //read BUFFERSIZE bytes from the serial and store them into the buffer
-
-  switch(buf[BUFFERSIZE-1])
+  }
+    
+  /*switch(buf[BUFFERSIZE-1])
   {
     case SET_RGB_ALL:
       for(int i=0;i<NUMPIXELS;++i)
@@ -69,19 +74,15 @@ void loop() {
     default:
       /*fingers[0].r = 255;
       fingers[0].g = 0;
-      fingers[0].b = 0;*/
+      fingers[0].b = 0;
       break;
-  }
+  }*/
+  
   for(uint8_t i=0;i<NUMPIXELS;++i)
   {
     strip.setPixelColor(i, fingers[i].r, fingers[i].g, fingers[i].b);
   }
   strip.show();
-  
-  for(int i=0;i<BUFFERSIZE;++i)
-  {
-    bt_data.write(buf[i]);
-  }
 }
 
 /*void rainbowWheel()
