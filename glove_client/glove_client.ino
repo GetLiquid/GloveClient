@@ -12,7 +12,7 @@
 #define SERIALBAUD 115200  //set the baud rate for serial communication with the bluetooth adapter
 
 //define the pins used
-//#define GEMMA
+#define GEMMA
 #ifdef GEMMA
 
 #define LED_PIN 1  //the data pin for the LED strip
@@ -49,27 +49,24 @@ void setup() {
   //bt_data.setTimeout(10);
 
   strip.begin();
-  for(uint8_t i = 0;i<NUMPIXELS;++i)
+  for(int i=0;i<3;++i)
   {
-    strip.setPixelColor(i, 200, 100, 100);
+    for(uint8_t i = 0;i<NUMPIXELS;++i)
+    {
+      strip.setPixelColor(i, 255, 255, 255);
+    }
+    strip.show();
+    delay(1000);
   }
-  strip.setBrightness(75);
-  strip.show();
+
+
+
+  
   
 }
 
 void loop() {
-  /*recv_data();
-  if(new_data)
-  {
-    if(buf[3]) < 5)
-    {
-      display_lights();
-    }
-  } else
-  {
-    rainbowCycle(2);
-  }*/
+  
   rainbowCycle(2);
 }
 
@@ -106,13 +103,13 @@ void print_data()
 {
   if(new_data)
   {
-    Serial.print("Received... ");
+//    Serial.print("Received... ");
     for(int i=0;i<BUFFERSIZE;++i)
     {
-      Serial.print(buf[i], HEX);
-      Serial.print(' ');
+//      Serial.print(buf[i], HEX);
+//      Serial.print(' ');
     }
-    Serial.print('\n');
+//    Serial.print('\n');
   }
 }
 
