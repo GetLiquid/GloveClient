@@ -34,6 +34,8 @@
 //Some important variables
 byte buf[BUFFERSIZE]; //this array of bytes stores the data from the bluetooth module each time data is read
 byte new_data = 0;
+byte flash = 0;
+boolean rainbow = false;
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 SoftwareSerial bt_data = SoftwareSerial(BT_RX,BT_TX);
@@ -56,20 +58,53 @@ void setup() {
       strip.setPixelColor(i, 255, 255, 255);
     }
     strip.show();
-    delay(1000);
+    delay(500);
+    for(uint8_t i = 0;i<NUMPIXELS;++i)
+    {
+      strip.setPixelColor(i, 0, 0, 0);
+    }
+    strip.show();
+    delay(500);
   }
-
-
-
-  
-  
+  strip.show();
 }
 
 void loop() {
-  
-  rainbowCycle(2);
+  //recv_data();
+  //display_lights();
+  /*if(bt_data.available() > 0)
+  {
+    switch(bt_data.read())
+    {
+      case 0xFF:
+        rainbow = true;
+        break;
+      case 0x00:
+        rainbow = false;
+        break;
+      default:
+        break;
+    }
+  }
+  if(rainbow)
+    rainbowCycle(3);
+  else
+  {
+    for(int i=0;i<255;++i)
+    {
+      uint32_t color = Wheel(i);
+      for(int j=0;j<NUMPIXELS;++j)
+      {
+        strip.setPixelColor(j, color);
+      }
+      strip.show();
+      delay(3);
+    }
+    //delay(3);
+  }*/
+  rainbowCycle(3);
 }
-
+/*
 void recv_data() {
     static byte inProgress = 0;
     static byte index = 0;
@@ -97,9 +132,9 @@ void recv_data() {
             inProgress = true;
         }
     }
-}
+}*/
 
-void print_data()
+/*void print_data()
 {
   if(new_data)
   {
@@ -111,28 +146,28 @@ void print_data()
     }
 //    Serial.print('\n');
   }
-}
+}*/
 
-void display_lights()
+/*void display_lights()
 {
   if(new_data)
   {
-    /*for(int i=0;i<NUMPIXELS;++i)
+    for(int i=0;i<NUMPIXELS;++i)
     {
       strip.setPixelColor(i, buf[(i*3)], buf[(i*3)+1], buf[(i*3)+2]);
-    }*/
-    strip.setPixelColor(buf[3], buf[1], buf[0], buf[2]);
+    }
+    //strip.setPixelColor(buf[3], buf[1], buf[0], buf[2]);
     new_data = false;
     strip.show();
   }
-}
+}*/
 
 // Slightly different, this makes the rainbow equally distributed throughout
 void rainbowCycle(uint8_t wait) {
   uint16_t i, j;
 
   for(j=0; j<256 * 5; j++) { // 5 cycles of all colors on wheel
-    for(i=0; i< strip.numPixels(); i++) {
+    for(i=0; i< NUMPIXELS; ++i) {
       strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
     }
     strip.show();
